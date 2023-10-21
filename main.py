@@ -21,7 +21,7 @@ api_key = args.api_key
 openai.api_key = api_key
 
 logf = open("success.txt", "a")
-
+print("Logging to success.txt")
 
 # Define a prompt for the model
 root_prompt = "Act as literature expert"
@@ -51,7 +51,8 @@ def btc_pass_to_address(passphrase, delimiter = '|'):
     private_key, address = wallet.generate_address_from_passphrase(passphrase)
     hd_key = HDKey(private_key)
     uncompressed_key = Key(hd_key.public_hex) 
-    all_addresses = [check_bc(hd_key.address()), check_bc(uncompressed_key.address_uncompressed()), check_bc(hd_key.address(script_type = 'p2sh')), check_bc(hd_key.address(encoding='bech32', script_type = 'p2wsh')), check_bc(hd_key.address(encoding='bech32' , script_type = 'p2wpkh'))]
+    all_addresses = [check_bc(hd_key.address()), check_bc(uncompressed_key.address_uncompressed()), check_bc(hd_key.address(script_type = 'p2sh'))]
+    
     return {delimiter.join(all_addresses):private_key}
 
 
@@ -72,36 +73,55 @@ def explorer_checker(query):
         print(f'Other error occurred: {err}')
 
 
-
-# Context creation
-response = openai.Completion.create(
-    engine="gpt-3.5-turbo-instruct",
-    prompt=root_prompt,
-    max_tokens=500
-)
+try:
+    # Context creation
+    response = openai.Completion.create(
+        engine="gpt-3.5-turbo-instruct",
+        prompt=root_prompt,
+        max_tokens=100
+    )
+except:
+    print("Limit reached")
 
 while True:
     try:
-        response = openai.Completion.create(
-        engine="gpt-3.5-turbo-instruct",
-        prompt=prompt,
-        max_tokens=500  # Adjust the number of tokens as needed
-        )
+        try:
+            response = openai.Completion.create(
+            engine="gpt-3.5-turbo-instruct",
+            prompt=prompt,
+            max_tokens=500  # Adjust the number of tokens as needed
+            )
+        except:
+            defaultjson='''
+                    {
+                    "passphrase1": "2b0rN0t2b$ecure!",
+                    "passphrase2": "4llUneedIsL0v3#Sec",
+                    "passphrase3": "Liv3&LetLiV3#Safe",
+                    "passphrase4": "3v3ryCloud$ilv3rLin1n9!",
+                    "passphrase5": "3arlyBirdCatc3sW0rm#",
+                    "passphrase6": "4ct!0ns$peakL0ud3r",
+                    "passphrase7": "AP3nny4Y0urTh0ught$",
+                    "passphrase8": "B3@uty1sEyeOfTh3B3holdr#",
+                    "passphrase9": "4n@pp1eAD@yK33psD0ct0rAw@y!",
+                    "passphrase10": "Wh3n!nRom3D0@5Rom@n5D0#"
+                    }
+            '''
+            if 'response' in locals():
+                defaultjson = response.choices[0].text
+            gptresponse_object = dirtyjson.loads(defaultjson)
 
-        gptresponse_object = dirtyjson.loads(response.choices[0].text)
-
-        addresses_to_check = {}       
-        for eachline in gptresponse_object:
-            password = gptresponse_object[eachline].strip()
-            addresses_to_check.update(btc_pass_to_address(password))
-            print(f'passphrase: {password}')
+            addresses_to_check = {}       
+            for eachline in gptresponse_object:
+                password = gptresponse_object[eachline].strip()
+                addresses_to_check.update(btc_pass_to_address(password))
+                print(f'passphrase: {password}')
         
-        build_query = ""
-        for key, value in addresses_to_check.items():  
-            build_query += key + "|"
+            build_query = ""
+            for key, value in addresses_to_check.items():  
+                build_query += key + "|"
             build_query=build_query.rstrip(build_query[-1]) # Deleting last character
-        print(build_query)
-        explorer_checker(build_query)
+            print(build_query)
+            explorer_checker(build_query)
     except:
         print("Error occured, sleeping...\n")
         time.sleep(10)
